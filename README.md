@@ -58,12 +58,12 @@
 ## データモデル / ストレージ
 - **使用テーブル**: `employees`, `shifts`, `closures`, `employee_settings`, `month_settings`
 - **ストレージ**: Google Sheets + Google Apps Script（GAS）API
-- **備考**: APIベースURL `https://script.google.com/macros/s/AKfycbxagqfFwtPgc0kxn8U2uMIXu-1XeEut33xQfCkQ1pSGkLyfH4MI5Ae02yTmEuPyJEXHdQ/exec` を使用。`?table=shifts` などのクエリで取得・保存。休診日は `closures`、従業員の有給は `employee_settings`、月別休日数は `month_settings`。祝日は https://holidays-jp.github.io/api/v1/date.json を参照。ログインは `employees` の `password` 列（任意追加）と `role` 列で判定。
+- **備考**: APIベースURL `https://script.google.com/macros/s/AKfycbxw7kPsT8h1gQl3Qxfb-HXjSLgEzD4NiCCZAxoH-1ug-YEKxEkiq_2UIYInVYbBBfW1zQ/exec` を使用。`?table=shifts` などのクエリで取得・保存。休診日は `closures`、従業員の有給は `employee_settings`、月別休日数は `month_settings`。祝日は https://holidays-jp.github.io/api/v1/date.json を参照。ログインは `employees` の `password` 列（任意追加）と `role` 列で判定。
 
 ## 公開URL
 - **Production**: なし（未デプロイ）
 - **API**: Google Apps Script
-  - Base: `https://script.google.com/macros/s/AKfycbxagqfFwtPgc0kxn8U2uMIXu-1XeEut33xQfCkQ1pSGkLyfH4MI5Ae02yTmEuPyJEXHdQ/exec`
+  - Base: `https://script.google.com/macros/s/AKfycbxw7kPsT8h1gQl3Qxfb-HXjSLgEzD4NiCCZAxoH-1ug-YEKxEkiq_2UIYInVYbBBfW1zQ/exec`
   - 例: `?table=shifts`
 
 ## 連絡・運用メモ
