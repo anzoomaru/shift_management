@@ -868,15 +868,15 @@
                 await ensureWeeklyHolidayClosures(year, month);
 
                 renderCalendar({ skipLoadClosures: true });
-
-                const targets = Array.from(weeklyHolidayTargets).filter(dateKey => !weeklyHolidayExclusions.has(dateKey));
-                await Promise.all(targets.map(dateKey => deleteShiftsByDate(dateKey)));
-                cachedOtherShifts = null;
+                setClosureDirty(false);
             } finally {
                 hideLoading();
-                await loadClosures(currentDate.getFullYear(), currentDate.getMonth());
-                renderCalendar({ skipLoadClosures: true });
             }
+
+            const targets = Array.from(weeklyHolidayTargets).filter(dateKey => !weeklyHolidayExclusions.has(dateKey));
+            deleteShiftsByDates(targets)
+                .then(() => { cachedOtherShifts = null; })
+                .catch(error => console.error('休診日シフト削除エラー:', error));
         }
 
         async function renderCalendar(options = { skipLoadClosures: false }) {
@@ -975,7 +975,7 @@
                     selectedDays.add(dateKey);
                 }
                 updateUsageDisplay();
-                renderCalendar();
+                updateCalendarCell(dateKey);
             }
         }
 
@@ -1000,7 +1000,7 @@
                 closuresSet.add(dateKey);
             }
             setClosureDirty(true);
-            renderCalendar({ skipLoadClosures: true });
+            updateCalendarCell(dateKey);
         }
 
         function setClosureDirty(isDirty) {
@@ -1031,7 +1031,7 @@
                 })));
 
                 if (toCreate.length > 0) {
-                    await Promise.all(toCreate.map(dateKey => deleteShiftsByDate(dateKey)));
+                    await deleteShiftsByDates(toCreate);
                     cachedOtherShifts = null;
                 }
 
@@ -1045,11 +1045,18 @@
             }
         }
 
-        async function deleteShiftsByDate(dateKey) {
+        async function deleteShiftsByDates(dateKeys = []) {
+            const uniqueKeys = Array.from(new Set(dateKeys)).filter(Boolean);
+            if (uniqueKeys.length === 0) return;
             const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
             const data = await response.json();
-            const targets = (data.data || []).filter(s => s.shift_date === dateKey);
+            const keySet = new Set(uniqueKeys);
+            const targets = (data.data || []).filter(s => keySet.has(s.shift_date));
             await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+        }
+
+        async function deleteShiftsByDate(dateKey) {
+            return deleteShiftsByDates([dateKey]);
         }
 
         async function deleteExistingShiftsForEmployee(employeeId, year, month) {
@@ -1137,6 +1144,72 @@
             }
         }
 
+        function buildDayShiftsFromCache(dateKey) {
+            if (!cachedOtherShifts) return null;
+            const dayShifts = { doctors: [], nurses: [] };
+            cachedOtherShifts.forEach(shift => {
+                if (shift.shift_date !== dateKey) return;
+                if (shift.position_type === 'doctor') {
+                    dayShifts.doctors.push(shift);
+                } else if (shift.position_type === 'nurse') {
+                    dayShifts.nurses.push(shift);
+                }
+            });
+            return dayShifts;
+        }
+
+        function renderShiftInfoContent(shiftInfo, dayShifts, employeesMap) {
+            shiftInfo.innerHTML = '';
+
+            const doctorShift = document.createElement('div');
+            doctorShift.className = 'doctor-shift';
+            const doctorNames = dayShifts.doctors.map(shift => (employeesMap[shift.employee_id] || shift.employee_name || '不明'));
+            if (doctorNames.length === 0) {
+                doctorShift.textContent = '獣医師不在';
+                doctorShift.classList.add('absence');
+            } else {
+                doctorShift.textContent = doctorNames.join('、');
+            }
+            shiftInfo.appendChild(doctorShift);
+
+            const nurseShift = document.createElement('div');
+            nurseShift.className = 'nurse-shift';
+            const nurseNames = dayShifts.nurses.map(shift => (employeesMap[shift.employee_id] || shift.employee_name || '不明'));
+            if (nurseNames.length === 0) {
+                nurseShift.textContent = '看護師不在';
+                nurseShift.classList.add('absence');
+            } else {
+                nurseShift.textContent = nurseNames.join('、');
+            }
+            shiftInfo.appendChild(nurseShift);
+        }
+
+        function updateCalendarCell(dateKey) {
+            const targetDay = calendarCellMap[dateKey];
+            if (!targetDay) return;
+            const isClosed = closuresSet.has(dateKey);
+            targetDay.classList.toggle('closed', isClosed);
+            targetDay.classList.toggle('selected', selectedDays.has(dateKey));
+
+            const shiftInfo = targetDay.querySelector('.shift-info');
+            if (!shiftInfo) return;
+
+            if (isClosed) {
+                shiftInfo.innerHTML = '<div>休診</div>';
+                return;
+            }
+
+            if (cachedOtherShifts && cachedEmployeesMap) {
+                const dayShifts = buildDayShiftsFromCache(dateKey);
+                if (dayShifts) {
+                    renderShiftInfoContent(shiftInfo, dayShifts, cachedEmployeesMap);
+                    return;
+                }
+            }
+
+            shiftInfo.innerHTML = '<div class="absence">獣医師不在</div><div class="absence">看護師不在</div>';
+        }
+
         function displayOtherEmployeesShifts(shifts, employeesMap, year, month) {
             const shiftsByDate = {};
             shifts.forEach(shift => {
@@ -1158,29 +1231,7 @@
                     continue;
                 }
                 const shiftInfo = targetDay.querySelector('.shift-info');
-                shiftInfo.innerHTML = '';
-
-                const doctorShift = document.createElement('div');
-                doctorShift.className = 'doctor-shift';
-                const doctorNames = dayShifts.doctors.map(shift => (employeesMap[shift.employee_id] || shift.employee_name || '不明'));
-                if (doctorNames.length === 0) {
-                    doctorShift.textContent = '獣医師不在';
-                    doctorShift.classList.add('absence');
-                } else {
-                    doctorShift.textContent = doctorNames.join('、');
-                }
-                shiftInfo.appendChild(doctorShift);
-
-                const nurseShift = document.createElement('div');
-                nurseShift.className = 'nurse-shift';
-                const nurseNames = dayShifts.nurses.map(shift => (employeesMap[shift.employee_id] || shift.employee_name || '不明'));
-                if (nurseNames.length === 0) {
-                    nurseShift.textContent = '看護師不在';
-                    nurseShift.classList.add('absence');
-                } else {
-                    nurseShift.textContent = nurseNames.join('、');
-                }
-                shiftInfo.appendChild(nurseShift);
+                renderShiftInfoContent(shiftInfo, dayShifts, employeesMap);
             }
         }
 
@@ -1193,7 +1244,6 @@
             selectedDays.clear();
             resetWeekdayChecks();
             setClosureDirty(false);
-            await loadGlobalMonthlyHolidays();
             if (mode === 'shift') {
                 await loadEmployeeSettings();
             }
