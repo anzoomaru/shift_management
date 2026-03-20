@@ -100,6 +100,7 @@
             <div class="error-message" id="errorMessage">
                 ログインIDまたはパスワードが正しくありません。
             </div>
+            <div class="text-muted small mt-2" id="debugMessage" style="display:none; white-space: pre-wrap;"></div>
         </form>
     </div>
 
@@ -111,6 +112,14 @@
             return `${API_BASE}?${query.toString()}`;
         }
 
+        const debugEnabled = new URLSearchParams(window.location.search).has('debug');
+        function setDebugMessage(message) {
+            if (!debugEnabled) return;
+            const debugEl = document.getElementById('debugMessage');
+            debugEl.textContent = message;
+            debugEl.style.display = 'block';
+        }
+
         async function loadEmployees() {
             try {
                 const response = await fetch(apiUrl('employees'));
@@ -118,6 +127,7 @@
                 return data.data || [];
             } catch (error) {
                 console.error('従業員データ取得エラー:', error);
+                setDebugMessage(`employees取得失敗: ${error}`);
                 return [];
             }
         }
@@ -202,6 +212,7 @@
                 const message = document.getElementById('errorMessage');
                 message.textContent = '従業員データが取得できません。GASのURLやシート名を確認してください。';
                 message.style.display = 'block';
+                setDebugMessage(`employees件数=0 / API_BASE=${API_BASE}`);
                 return;
             }
 
@@ -245,6 +256,17 @@
                         break;
                 }
             } else {
+                const debugLines = [];
+                debugLines.push(`inputId=${normalizedId}`);
+                debugLines.push(`inputPwLength=${normalizePassword(password).length}`);
+                debugLines.push(`employeesCount=${employees.length}`);
+                debugLines.push(`rowFound=${!!row}`);
+                if (row) {
+                    debugLines.push(`rowId=${normalizeLoginId(normalizedRow.id || row.id)}`);
+                    debugLines.push(`rowPwLength=${rowPassword.length}`);
+                    debugLines.push(`role=${normalizedRow.role || row.role || ''}`);
+                }
+                setDebugMessage(debugLines.join('\n'));
                 document.getElementById('errorMessage').style.display = 'block';
             }
         });
