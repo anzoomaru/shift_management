@@ -421,7 +421,7 @@
                 const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
                 const data = await response.json();
                 const targetDates = ['02', '03', '04', '09', '10'].map(d => `${monthKey}-${d}`);
-                const targets = (data.data || []).filter(s => targetDates.includes(s.shift_date));
+                const targets = (data.data || []).filter(s => targetDates.includes(normalizeShiftDate(s.shift_date)));
                 if (targets.length === 0) {
                     localStorage.setItem(flagKey, 'done');
                     return;
@@ -439,7 +439,10 @@
                 const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
                 const data = await response.json();
                 const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-                return (data.data || []).filter(s => (s.shift_date || '').startsWith(monthKey));
+                return (data.data || []).map(s => ({
+                    ...s,
+                    shift_date: normalizeShiftDate(s.shift_date)
+                })).filter(s => (s.shift_date || '').startsWith(monthKey));
             } catch (error) {
                 console.error('シフトデータの取得エラー:', error);
                 return [];
@@ -648,13 +651,14 @@
             // 日付ごとにシフトをグループ化
             const shiftsByDate = {};
             shifts.forEach(shift => {
-                if (!shiftsByDate[shift.shift_date]) {
-                    shiftsByDate[shift.shift_date] = { doctors: [], nurses: [] };
+                const shiftDate = normalizeShiftDate(shift.shift_date);
+                if (!shiftsByDate[shiftDate]) {
+                    shiftsByDate[shiftDate] = { doctors: [], nurses: [] };
                 }
                 if (shift.position_type === 'doctor') {
-                    shiftsByDate[shift.shift_date].doctors.push(shift);
+                    shiftsByDate[shiftDate].doctors.push(shift);
                 } else if (shift.position_type === 'nurse') {
-                    shiftsByDate[shift.shift_date].nurses.push(shift);
+                    shiftsByDate[shiftDate].nurses.push(shift);
                 }
             });
 
@@ -779,6 +783,21 @@
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
 
+        function normalizeShiftDate(value) {
+            if (!value) return '';
+            if (typeof value === 'string') {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+                const parsed = new Date(value);
+                if (!isNaN(parsed)) return formatDate(parsed);
+                return value;
+            }
+            if (value instanceof Date) {
+                return formatDate(value);
+            }
+            const parsed = new Date(value);
+            return isNaN(parsed) ? String(value) : formatDate(parsed);
+        }
+
         function getMonthWorkingDays(year, month, closedSet = new Set()) {
             const lastDay = new Date(year, month + 1, 0).getDate();
             const days = [];
@@ -795,7 +814,7 @@
             const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
             const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
             const data = await response.json();
-            const targets = (data.data || []).filter(s => s.employee_id === currentUser.employee_id && (s.shift_date || '').startsWith(monthKey));
+            const targets = (data.data || []).filter(s => s.employee_id === currentUser.employee_id && normalizeShiftDate(s.shift_date).startsWith(monthKey));
             await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
         }
 
@@ -847,7 +866,10 @@
                 const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
                 const data = await response.json();
                 const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-                const myShifts = (data.data || []).filter(s => s.employee_id === currentUser.employee_id && (s.shift_date || '').startsWith(monthKey));
+                const myShifts = (data.data || []).map(s => ({
+                    ...s,
+                    shift_date: normalizeShiftDate(s.shift_date)
+                })).filter(s => s.employee_id === currentUser.employee_id && (s.shift_date || '').startsWith(monthKey));
                 return myShifts;
             } catch (error) {
                 console.error('自分のシフト取得エラー:', error);

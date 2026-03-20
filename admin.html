@@ -559,6 +559,21 @@
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
 
+        function normalizeShiftDate(value) {
+            if (!value) return '';
+            if (typeof value === 'string') {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+                const parsed = new Date(value);
+                if (!isNaN(parsed)) return formatDate(parsed);
+                return value;
+            }
+            if (value instanceof Date) {
+                return formatDate(value);
+            }
+            const parsed = new Date(value);
+            return isNaN(parsed) ? String(value) : formatDate(parsed);
+        }
+
         function getMonthKey(year, month) {
             return `${year}-${String(month + 1).padStart(2, '0')}`;
         }
@@ -736,7 +751,10 @@
                 const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
                 const data = await response.json();
                 const monthKey = getMonthKey(year, month);
-                const saved = (data.data || []).filter(s => s.employee_id === employeeId && (s.shift_date || '').startsWith(monthKey));
+                const saved = (data.data || []).map(s => ({
+                    ...s,
+                    shift_date: normalizeShiftDate(s.shift_date)
+                })).filter(s => s.employee_id === employeeId && (s.shift_date || '').startsWith(monthKey));
                 const workingDays = getMonthWorkingDays(year, month, closuresSet);
                 const savedSet = new Set(saved.map(s => s.shift_date));
                 if (savedSet.size > 0) {
@@ -755,7 +773,10 @@
                 const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
                 const data = await response.json();
                 const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-                return (data.data || []).filter(s => (s.shift_date || '').startsWith(monthKey));
+                return (data.data || []).map(s => ({
+                    ...s,
+                    shift_date: normalizeShiftDate(s.shift_date)
+                })).filter(s => (s.shift_date || '').startsWith(monthKey));
             } catch (error) {
                 console.error('シフトデータの取得エラー:', error);
                 return [];
@@ -1069,7 +1090,7 @@
             const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
             const data = await response.json();
             const keySet = new Set(uniqueKeys);
-            const targets = (data.data || []).filter(s => keySet.has(s.shift_date));
+            const targets = (data.data || []).filter(s => keySet.has(normalizeShiftDate(s.shift_date)));
             await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
         }
 
@@ -1081,7 +1102,7 @@
             const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
             const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
             const data = await response.json();
-            const targets = (data.data || []).filter(s => s.employee_id === employeeId && (s.shift_date || '').startsWith(monthKey));
+            const targets = (data.data || []).filter(s => s.employee_id === employeeId && normalizeShiftDate(s.shift_date).startsWith(monthKey));
             await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
         }
 
@@ -1166,7 +1187,8 @@
             if (!cachedOtherShifts) return null;
             const dayShifts = { doctors: [], nurses: [] };
             cachedOtherShifts.forEach(shift => {
-                if (shift.shift_date !== dateKey) return;
+                const shiftDate = normalizeShiftDate(shift.shift_date);
+                if (shiftDate !== dateKey) return;
                 if (shift.position_type === 'doctor') {
                     dayShifts.doctors.push(shift);
                 } else if (shift.position_type === 'nurse') {
@@ -1231,13 +1253,14 @@
         function displayOtherEmployeesShifts(shifts, employeesMap, year, month) {
             const shiftsByDate = {};
             shifts.forEach(shift => {
-                if (!shiftsByDate[shift.shift_date]) {
-                    shiftsByDate[shift.shift_date] = { doctors: [], nurses: [] };
+                const shiftDate = normalizeShiftDate(shift.shift_date);
+                if (!shiftsByDate[shiftDate]) {
+                    shiftsByDate[shiftDate] = { doctors: [], nurses: [] };
                 }
                 if (shift.position_type === 'doctor') {
-                    shiftsByDate[shift.shift_date].doctors.push(shift);
+                    shiftsByDate[shiftDate].doctors.push(shift);
                 } else if (shift.position_type === 'nurse') {
-                    shiftsByDate[shift.shift_date].nurses.push(shift);
+                    shiftsByDate[shiftDate].nurses.push(shift);
                 }
             });
 
