@@ -261,7 +261,7 @@
         let closuresSet = new Set();
         let closuresMap = {};
 
-        const API_BASE = 'https://script.google.com/macros/s/AKfycbxw7kPsT8h1gQl3Qxfb-HXjSLgEzD4NiCCZAxoH-1ug-YEKxEkiq_2UIYInVYbBBfW1zQ/exec';
+        const API_BASE = 'https://script.google.com/macros/s/AKfycbx7V_oWv7oT1S3BnfG7WpTFCOIeVhl2K2SxndJ6UTKnsHljrx23SJpre2LhQvy6cKw2Rw/exec';
         function apiUrl(table, params = {}) {
             const query = new URLSearchParams({ table, ...params });
             return `${API_BASE}?${query.toString()}`;
