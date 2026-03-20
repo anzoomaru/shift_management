@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>筒井動物病院 - 従業員画面</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: "游ゴシック", "YuGothic", "メイリオ", "Meiryo", "ＭＳ ゴシック", sans-serif;
+        }
+        .header {
+            background-color: #2c5aa0;
+            color: white;
+            padding: 15px 0;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 20px;
+            margin: 0;
+        }
+        .info-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .info-item strong {
+            color: #2c5aa0;
+        }
+        .calendar-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+        .calendar-nav button {
+            background-color: #2c5aa0;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-load-shifts {
+            background-color: #ffffff;
+            color: #2c5aa0;
+            border: 1px solid #2c5aa0;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn-load-shifts:hover {
+            background-color: #e3f2fd;
+        }
+        .calendar-nav button:hover {
+            background-color: #1e3d6f;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #dee2e6;
+            border: 1px solid #dee2e6;
+        }
+        .calendar-day-header {
+            background-color: #2c5aa0;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .calendar-day {
+            background-color: white;
+            min-height: 120px;
+            padding: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .calendar-day:hover {
+            background-color: #e3f2fd;
+        }
+        .calendar-day.selected {
+            background-color: #ff69b4; /* ピンク色に変更 */
+        }
+        .calendar-day.disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .calendar-day.disabled:hover {
+            background-color: #f5f5f5;
+        }
+        .calendar-day.off-day {
+            background-color: #ffcdd2;
+        }
+        .calendar-day.closed {
+            background-color: #d32f2f;
+            color: white;
+        }
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .shift-info {
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        .doctor-shift {
+            color: #1976d2;
+            margin-bottom: 3px;
+        }
+        .nurse-shift {
+            color: #388e3c;
+        }
+        .absence {
+            color: #d32f2f;
+            font-weight: 600;
+        }
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-submit {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-cancel {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-logout {
+            background-color: #757575;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-admin {
+            background-color: #ffc107;
+            color: #1f2d3d;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .instructions {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .instructions h6 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .instructions ol {
+            color: #856404;
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.25);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .loading-box {
+            background: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            font-weight: bold;
+            color: #2c5aa0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1><img src="images/logo.png" alt="筒井動物病院 ロゴ" style="height: 24px; margin-right: 8px;"> 筒井動物病院 - シフト管理システム</h1>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="info-panel">
+                    <h5>ログイン情報</h5>
+                    <div class="info-item">
+                        <span>ログイン中：</span>
+                        <span id="userName">---</span>
+                    </div>
+                    <div class="info-item">
+                        <span>役職：</span>
+                        <span id="userPosition">---</span>
+                    </div>
+                    <button class="btn-admin w-100 mt-2" id="adminSwitchBtn" onclick="goAdmin()" style="display:none;">
+                        <i class="fas fa-user-shield me-1"></i> 管理者画面へ
+                    </button>
+                </div>
+                
+                <div class="info-panel">
+                    <h5>休暇情報</h5>
+                    <div class="info-item">
+                        <span>残り有給休暇数：</span>
+                        <span id="remainingPaid">--日</span>
+                    </div>
+                    <div class="info-item">
+                        <span>残り休日数：</span>
+                        <span id="remainingHolidays">--日</span>
+                    </div>
+                    <div class="info-item">
+                        <span>使用有給休暇数：</span>
+                        <span id="usedPaid">--日</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <h3 id="currentMonth" class="mb-0">2026年3月</h3>
+                            <button class="btn-load-shifts" id="loadOtherShiftsBtn" onclick="loadOtherShifts()">
+                                他従業員のシフト読み込み
+                            </button>
+                        </div>
+                        <div class="calendar-nav">
+                            <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                            <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="calendar-grid" id="calendarGrid">
+                        <!-- カレンダーはJavaScriptで動的に生成 -->
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn-submit" onclick="submitShift()">
+                            <i class="fas fa-check"></i> 表示月のシフトを提出する
+                        </button>
+                        <button class="btn-cancel" onclick="cancelShift()">
+                            <i class="fas fa-undo"></i> 表示月のシフトを取り消す
+                        </button>
+                        <button class="btn-logout" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> ログアウト
+                        </button>
+                    </div>
+                    
+                    <div class="instructions">
+                        <h6>※シフト管理システムの使い方※</h6>
+                        <ol>
+                            <li>残り休日数分、休みにする日をクリックして赤塗してください。</li>
+                            <li>シフトが決まりましたら「表示月のシフトを提出する」を押下してください。</li>
+                            <li>提出後再び編集したい場合には「表示月のシフトを取り消す」を押下してください。</li>
+                            <li>残り休日数分を超えると自動的に有給が使われます。（有給がまだ支給されていない、もしくは残っていない場合にはエラーが出ます）</li>
+                            <li>有給は自動的に付与されます。（４月入社の方は１０月、それ以外の方はそれぞれ設定された日に付与されます）</li>
+                            <li>本システムについてご質問がある場合には崇までご質問下さい。</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay" aria-live="polite" aria-busy="true">
+        <div class="loading-box"><i class="fas fa-spinner fa-spin me-2"></i>Loading</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // グローバル変数
+        let currentDate = new Date();
+        let selectedDays = new Set();
+        let currentUser = null;
+        let monthlyData = {};
+        let initialHolidays = 8; // 初期値を保持
+        let baseRemainingPaid = 12; // 管理者設定の有給残数（基準値）
+        let usedPaidDaysCount = 0; // 使用した有給日数を追跡
+        let employeeNameMap = null;
+        let isSaving = false;
+        let closuresSet = new Set();
+        let closuresMap = {};
+
+        const API_BASE = 'https://script.google.com/macros/s/AKfycbyOau2PzYyGWMyuhLpN9DIb2WuFXEdoxASZ8Sj83uhEMe6rKnkbwQLa2TnrBng2Qkxf9g/exec';
+        function apiUrl(table, params = {}) {
+            const query = new URLSearchParams({ table, ...params });
+            return `${API_BASE}?${query.toString()}`;
+        }
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            loadUserData();
+            renderCalendar();
+        });
+
+        // ログイン状態の確認
+        function checkLoginStatus() {
+            const userData = sessionStorage.getItem('user');
+            if (!userData) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = JSON.parse(userData);
+            document.getElementById('userName').textContent = currentUser.name;
+            if (currentUser.email === 'tsutsui@tsutsui.jp') {
+                const btn = document.getElementById('adminSwitchBtn');
+                if (btn) btn.style.display = 'block';
+            }
+        }
+
+        function goAdmin() {
+            window.location.href = 'admin.html';
+        }
+
+        function showLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.classList.add('active');
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        // ユーザーデータの読み込み
+        function loadUserData() {
+            // ユーザー情報を表示
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userPosition').textContent = currentUser.position || (currentUser.role === 'nurse' ? '動物看護師' : (currentUser.role === 'veterinarian' ? '獣医師' : '管理者'));
+            
+            monthlyData = {
+                remainingPaid: baseRemainingPaid,
+                remainingHolidays: initialHolidays,
+                usedPaid: 0
+            };
+
+            document.getElementById('remainingPaid').textContent = monthlyData.remainingPaid + '日';
+            document.getElementById('remainingHolidays').textContent = monthlyData.remainingHolidays + '日';
+            document.getElementById('usedPaid').textContent = monthlyData.usedPaid + '日';
+        }
+
+        function resetMonthlyState() {
+            selectedDays.clear();
+            usedPaidDaysCount = 0;
+            monthlyData.remainingHolidays = initialHolidays;
+            monthlyData.remainingPaid = baseRemainingPaid;
+            document.getElementById('remainingHolidays').textContent = monthlyData.remainingHolidays + '日';
+            document.getElementById('remainingPaid').textContent = monthlyData.remainingPaid + '日';
+            document.getElementById('usedPaid').textContent = '0日';
+        }
+
+        async function cleanupDefaultShifts(year, month) {
+            const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const flagKey = `defaultCleanup-${monthKey}`;
+            if (localStorage.getItem(flagKey)) return;
+
+            try {
+                const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
+                const data = await response.json();
+                const targetDates = ['02', '03', '04', '09', '10'].map(d => `${monthKey}-${d}`);
+                const targets = (data.data || []).filter(s => targetDates.includes(s.shift_date));
+                if (targets.length === 0) {
+                    localStorage.setItem(flagKey, 'done');
+                    return;
+                }
+                await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+                localStorage.setItem(flagKey, 'done');
+            } catch (error) {
+                console.error('初期シフト削除エラー:', error);
+            }
+        }
+
+        // 他の従業員のシフトデータを取得
+        async function loadOtherEmployeesShifts(year, month) {
+            try {
+                const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
+                const data = await response.json();
+                const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                return (data.data || []).filter(s => (s.shift_date || '').startsWith(monthKey));
+            } catch (error) {
+                console.error('シフトデータの取得エラー:', error);
+                return [];
+            }
+        }
+
+        async function loadClosures(year, month) {
+            try {
+                const response = await fetch(apiUrl('closures', { page: 1, limit: 500 }));
+                const data = await response.json();
+                const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const map = {};
+                (data.data || []).forEach(c => {
+                    if (c.date && c.date.startsWith(monthKey)) {
+                        map[c.date] = c.id;
+                    }
+                });
+                closuresMap = map;
+                closuresSet = new Set(Object.keys(map));
+            } catch (error) {
+                console.error('休診日データの取得エラー:', error);
+                closuresMap = {};
+                closuresSet = new Set();
+            }
+        }
+
+        async function loadMonthSettings(year, month) {
+            const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const defaultHolidays = Math.max(0, 9 - closuresSet.size);
+            try {
+                const response = await fetch(apiUrl('month_settings', { page: 1, limit: 500 }));
+                const data = await response.json();
+                const row = (data.data || []).find(r => r.month_key === monthKey);
+                initialHolidays = row ? Number(row.monthly_holidays ?? defaultHolidays) : defaultHolidays;
+            } catch (error) {
+                console.error('月別休日数の取得エラー:', error);
+                initialHolidays = defaultHolidays;
+            }
+        }
+
+        async function loadEmployeeSettings(year, month) {
+            const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+            try {
+                const response = await fetch(apiUrl('employee_settings', { page: 1, limit: 500 }));
+                const data = await response.json();
+                const row = (data.data || []).find(r => r.employee_id === currentUser.employee_id && r.month_key === monthKey);
+                baseRemainingPaid = row ? Number(row.remaining_paid ?? 12) : 12;
+            } catch (error) {
+                console.error('従業員有給設定の取得エラー:', error);
+                baseRemainingPaid = 12;
+            }
+        }
+
+        // 従業員一覧を取得してID->名前マップを生成
+        async function loadEmployeesMap() {
+            if (employeeNameMap) return employeeNameMap;
+            try {
+                const response = await fetch(apiUrl('employees', { page: 1, limit: 200 }));
+                const data = await response.json();
+                const map = {};
+                (data.data || []).forEach(emp => {
+                    if (emp.id) map[emp.id] = emp.name || '不明';
+                });
+                employeeNameMap = map;
+                return employeeNameMap;
+            } catch (error) {
+                console.error('従業員情報の取得エラー:', error);
+                employeeNameMap = {};
+                return employeeNameMap;
+            }
+        }
+
+        // カレンダーの描画
+        let cachedOtherShifts = null;
+        let cachedEmployeesMap = null;
+        let calendarCellMap = {};
+
+        async function renderCalendar() {
+            showLoading();
+            try {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+
+                await cleanupDefaultShifts(year, month);
+                await loadClosures(year, month);
+                await loadMonthSettings(year, month);
+                await loadEmployeeSettings(year, month);
+
+                monthlyData = {
+                    remainingPaid: baseRemainingPaid,
+                    remainingHolidays: initialHolidays,
+                    usedPaid: 0
+                };
+                document.getElementById('remainingPaid').textContent = monthlyData.remainingPaid + '日';
+                document.getElementById('remainingHolidays').textContent = monthlyData.remainingHolidays + '日';
+                document.getElementById('usedPaid').textContent = monthlyData.usedPaid + '日';
+
+                const myShifts = await loadMyShifts(year, month);
+                applySavedShiftsToSelection(myShifts, year, month);
+                
+                // 年月の表示更新
+                document.getElementById('currentMonth').textContent = `${year}年${month + 1}月`;
+                
+                // カレンダーグリッドのクリア
+                const grid = document.getElementById('calendarGrid');
+                grid.innerHTML = '';
+                calendarCellMap = {};
+                const fragment = document.createDocumentFragment();
+                
+                // 曜日ヘッダー
+                const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                weekdays.forEach(day => {
+                    const header = document.createElement('div');
+                    header.className = 'calendar-day-header';
+                    header.textContent = day;
+                    fragment.appendChild(header);
+                });
+                
+                // 月の最初の日と最後の日
+                const firstDay = new Date(year, month, 1);
+                const startDate = new Date(firstDay);
+                startDate.setDate(startDate.getDate() - firstDay.getDay());
+                
+                // カレンダーの日付セルを生成
+                for (let i = 0; i < 42; i++) {
+                    const cellDate = new Date(startDate);
+                    cellDate.setDate(startDate.getDate() + i);
+                    
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'calendar-day';
+                    dayCell.onclick = () => toggleDay(cellDate);
+                    
+                    // 月外の日付
+                    if (cellDate.getMonth() !== month) {
+                        dayCell.style.opacity = '0.3';
+                    }
+                    
+                    // 日付番号
+                    const dayNumber = document.createElement('div');
+                    dayNumber.className = 'day-number';
+                    dayNumber.textContent = cellDate.getDate();
+                    dayCell.appendChild(dayNumber);
+                    
+                    // シフト情報
+                    const shiftInfo = document.createElement('div');
+                    shiftInfo.className = 'shift-info';
+                    
+                    const dateKey = formatDate(cellDate);
+                    
+                    // 休診日のチェック
+                    if (closuresSet.has(dateKey)) {
+                        dayCell.classList.add('closed');
+                        dayCell.classList.add('disabled'); // クリック不可にする
+                        shiftInfo.innerHTML = '<div>休診</div>';
+                    } else {
+                        shiftInfo.innerHTML = '<div class="absence">獣医師不在</div><div class="absence">看護師不在</div>';
+                    }
+                    
+                    dayCell.appendChild(shiftInfo);
+                    
+                    // 選択状態のチェック
+                    if (selectedDays.has(dateKey)) {
+                        dayCell.classList.add('selected');
+                    }
+
+                    if (cellDate.getMonth() === month && cellDate.getFullYear() === year) {
+                        calendarCellMap[dateKey] = dayCell;
+                    }
+                    
+                    fragment.appendChild(dayCell);
+                }
+
+                grid.appendChild(fragment);
+
+                // 既に読み込み済みの他従業員シフトがあれば再描画
+                if (cachedOtherShifts && cachedEmployeesMap) {
+                    displayOtherEmployeesShifts(cachedOtherShifts, cachedEmployeesMap, year, month);
+                }
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function loadOtherShifts() {
+            const btn = document.getElementById('loadOtherShiftsBtn');
+            if (btn) btn.disabled = true;
+            showLoading();
+            try {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const [otherShifts, employeesMap] = await Promise.all([
+                    loadOtherEmployeesShifts(year, month),
+                    loadEmployeesMap()
+                ]);
+                cachedOtherShifts = otherShifts;
+                cachedEmployeesMap = employeesMap;
+                displayOtherEmployeesShifts(otherShifts, employeesMap, year, month);
+            } finally {
+                hideLoading();
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        // 他の従業員のシフトを表示する関数
+        function displayOtherEmployeesShifts(shifts, employeesMap, year, month) {
+            // 日付ごとにシフトをグループ化
+            const shiftsByDate = {};
+            shifts.forEach(shift => {
+                if (!shiftsByDate[shift.shift_date]) {
+                    shiftsByDate[shift.shift_date] = { doctors: [], nurses: [] };
+                }
+                if (shift.position_type === 'doctor') {
+                    shiftsByDate[shift.shift_date].doctors.push(shift);
+                } else if (shift.position_type === 'nurse') {
+                    shiftsByDate[shift.shift_date].nurses.push(shift);
+                }
+            });
+
+            // 各日付のシフト情報を表示
+            for (const [date, dayShifts] of Object.entries(shiftsByDate)) {
+                const targetDay = calendarCellMap[date];
+                if (!targetDay) continue;
+
+                if (targetDay.classList.contains('closed')) {
+                    continue;
+                }
+                const shiftInfo = targetDay.querySelector('.shift-info');
+
+                // 既存の内容をクリア
+                shiftInfo.innerHTML = '';
+
+                // 獣医師シフト
+                const doctorShift = document.createElement('div');
+                doctorShift.className = 'doctor-shift';
+                const doctorNames = dayShifts.doctors.map(shift => (employeesMap[shift.employee_id] || shift.employee_name || '不明'));
+                if (doctorNames.length === 0) {
+                    doctorShift.textContent = '獣医師不在';
+                    doctorShift.classList.add('absence');
+                } else {
+                    doctorShift.textContent = doctorNames.join('、');
+                }
+                shiftInfo.appendChild(doctorShift);
+
+                // 看護師シフト
+                const nurseShift = document.createElement('div');
+                nurseShift.className = 'nurse-shift';
+                const nurseNames = dayShifts.nurses.map(shift => (employeesMap[shift.employee_id] || shift.employee_name || '不明'));
+                if (nurseNames.length === 0) {
+                    nurseShift.textContent = '看護師不在';
+                    nurseShift.classList.add('absence');
+                } else {
+                    nurseShift.textContent = nurseNames.join('、');
+                }
+                shiftInfo.appendChild(nurseShift);
+            }
+        }
+
+        // 月の変更
+
+        // 月の変更
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            resetMonthlyState();
+            renderCalendar();
+        }
+
+        // 日付の選択/解除
+        function toggleDay(date) {
+            const dateKey = formatDate(date);
+            
+            // 休診日の場合は選択不可
+            if (closuresSet.has(dateKey)) {
+                return;
+            }
+            
+            if (selectedDays.has(dateKey)) {
+                // 選択解除の場合
+                selectedDays.delete(dateKey);
+                
+                // 有給が使用されている場合は有給を優先的に戻す
+                if (usedPaidDaysCount > 0) {
+                    usedPaidDaysCount--;
+                    monthlyData.remainingPaid++;
+                } else {
+                    // 有給が未使用の場合は通常の休日数を戻す
+                    monthlyData.remainingHolidays++;
+                }
+            } else {
+                // 選択の場合
+                const currentSelectedDays = selectedDays.size;
+                const totalSelectedDays = currentSelectedDays + 1;
+                
+                // 現在の通常休日数（有給を除いた選択済み日数）
+                const currentRegularHolidays = selectedDays.size - usedPaidDaysCount;
+                const remainingRegularHolidays = Math.max(0, initialHolidays - currentRegularHolidays);
+                
+                // 残り休日数を超える場合
+                if (remainingRegularHolidays === 0) {
+                    // 有給を使用する必要がある
+                    if (monthlyData.remainingPaid > 0) {
+                        if (usedPaidDaysCount === 0) {
+                            // 初めて有給を使用する場合は確認
+                            if (confirm('残り休日数を超えた日数分の休みは有給休暇となります。')) {
+                                selectedDays.add(dateKey);
+                                usedPaidDaysCount++;
+                                monthlyData.remainingPaid--;
+                            } else {
+                                return;
+                            }
+                        } else {
+                            // 既に有給を使用している場合は確認なしで追加
+                            selectedDays.add(dateKey);
+                            usedPaidDaysCount++;
+                            monthlyData.remainingPaid--;
+                        }
+                    } else {
+                        alert('有給休暇の残日数が不足しています。');
+                        return;
+                    }
+                } else {
+                    // 残り休日数内の場合は通常の休日を使用
+                    selectedDays.add(dateKey);
+                    monthlyData.remainingHolidays--;
+                }
+            }
+            
+            // 表示を更新
+            document.getElementById('remainingHolidays').textContent = monthlyData.remainingHolidays + '日';
+            document.getElementById('remainingPaid').textContent = monthlyData.remainingPaid + '日';
+            document.getElementById('usedPaid').textContent = usedPaidDaysCount + '日';
+            
+            renderCalendar();
+        }
+
+        // 日付フォーマット
+        function formatDate(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function getMonthWorkingDays(year, month, closedSet = new Set()) {
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const days = [];
+            for (let d = 1; d <= lastDay; d++) {
+                const date = new Date(year, month, d);
+                const dateKey = formatDate(date);
+                if (closedSet.has(dateKey)) continue;
+                days.push(dateKey);
+            }
+            return days;
+        }
+
+        async function deleteExistingShifts(year, month) {
+            const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
+            const data = await response.json();
+            const targets = (data.data || []).filter(s => s.employee_id === currentUser.employee_id && (s.shift_date || '').startsWith(monthKey));
+            await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+        }
+
+        async function saveShiftsForMonth() {
+            if (isSaving) return;
+            isSaving = true;
+            showLoading();
+            try {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+
+                await deleteExistingShifts(year, month);
+
+                const workingDays = getMonthWorkingDays(year, month, closuresSet).filter(d => !selectedDays.has(d));
+                const payloads = workingDays.map(dateStr => ({
+                    employee_id: currentUser.employee_id,
+                    employee_name: currentUser.name,
+                    shift_date: dateStr,
+                    position_type: currentUser.position_type
+                }));
+
+                await Promise.all(payloads.map(data => fetch(apiUrl('shifts'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })));
+            } finally {
+                hideLoading();
+                isSaving = false;
+            }
+        }
+
+        async function deleteShiftsForMonth() {
+            if (isSaving) return;
+            isSaving = true;
+            showLoading();
+            try {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                await deleteExistingShifts(year, month);
+            } finally {
+                hideLoading();
+                isSaving = false;
+            }
+        }
+
+        async function loadMyShifts(year, month) {
+            try {
+                const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
+                const data = await response.json();
+                const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const myShifts = (data.data || []).filter(s => s.employee_id === currentUser.employee_id && (s.shift_date || '').startsWith(monthKey));
+                return myShifts;
+            } catch (error) {
+                console.error('自分のシフト取得エラー:', error);
+                return [];
+            }
+        }
+
+        function applySavedShiftsToSelection(savedShifts, year, month) {
+            const workingDays = getMonthWorkingDays(year, month, closuresSet);
+            const workingSet = new Set(workingDays);
+            const savedWorkingSet = new Set((savedShifts || []).map(s => s.shift_date));
+
+            // 保存されている勤務日がある場合、休みは「勤務日以外の平日」
+            if (savedWorkingSet.size > 0) {
+                selectedDays = new Set(workingDays.filter(d => !savedWorkingSet.has(d)));
+            }
+
+            // 休日数の再計算
+            const selectedCount = selectedDays.size;
+            if (selectedCount <= initialHolidays) {
+                usedPaidDaysCount = 0;
+                monthlyData.remainingHolidays = initialHolidays - selectedCount;
+                monthlyData.remainingPaid = baseRemainingPaid;
+            } else {
+                usedPaidDaysCount = selectedCount - initialHolidays;
+                monthlyData.remainingHolidays = 0;
+                monthlyData.remainingPaid = Math.max(0, baseRemainingPaid - usedPaidDaysCount);
+            }
+
+            document.getElementById('remainingHolidays').textContent = monthlyData.remainingHolidays + '日';
+            document.getElementById('remainingPaid').textContent = monthlyData.remainingPaid + '日';
+            document.getElementById('usedPaid').textContent = usedPaidDaysCount + '日';
+        }
+
+        // シフト提出
+        async function submitShift() {
+            if (selectedDays.size === 0) {
+                alert('休みを選択してください。');
+                return;
+            }
+            
+            // 有給休暇の使用状況を確認
+            const requiredPaidDays = Math.max(0, selectedDays.size - (initialHolidays - monthlyData.remainingHolidays));
+            
+            if (requiredPaidDays > 0 && usedPaidDaysCount === 0) {
+                if (!confirm('残り休日数を超えた日数分の休みは有給休暇となります。')) {
+                    return;
+                }
+            }
+
+            await saveShiftsForMonth();
+            await renderCalendar();
+            alert('シフトを提出しました。');
+        }
+
+        // ユーザー名を反映したカレンダー再描画
+        function renderCalendarWithUserShift() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = `${year}年${month + 1}月`;
+            
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            
+            // 曜日ヘッダー
+            const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+            weekdays.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-day-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            for (let i = 0; i < 42; i++) {
+                const cellDate = new Date(startDate);
+                cellDate.setDate(startDate.getDate() + i);
+                
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                
+                if (cellDate.getMonth() !== month) {
+                    dayCell.style.opacity = '0.3';
+                }
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = cellDate.getDate();
+                dayCell.appendChild(dayNumber);
+                
+                const shiftInfo = document.createElement('div');
+                shiftInfo.className = 'shift-info';
+                
+                const dateKey = formatDate(cellDate);
+                
+                // 休診日チェック
+                if (cellDate.getDay() === 0 || cellDate.getDay() === 6) {
+                    dayCell.classList.add('closed');
+                    dayCell.classList.add('disabled'); // クリック不可にする
+                    shiftInfo.innerHTML = '<div>休診</div>';
+                } else {
+                    // 選択された休みの日
+                    if (selectedDays.has(dateKey)) {
+                        dayCell.classList.add('selected');
+                        shiftInfo.innerHTML = '<div style="color: #999;">休み</div>';
+                    } else {
+                        // 出勤日に自分の名前を表示
+                        const userPosition = currentUser.position || (currentUser.role === 'nurse' ? '動物看護師' : '獣医師');
+                        const displayName = currentUser.name;
+                        const textColor = userPosition === '動物看護師' ? '#388e3c' : '#1976d2';
+                        
+                        if (userPosition === '動物看護師') {
+                            // 動物看護師の場合は看護師シフトのみに表示
+                            const nurseShift = document.createElement('div');
+                            nurseShift.className = 'nurse-shift';
+                            nurseShift.style.color = textColor;
+                            nurseShift.textContent = displayName;
+                            shiftInfo.appendChild(nurseShift);
+                        } else {
+                            // 獣医師の場合は獣医師シフトに表示
+                            const doctorShift = document.createElement('div');
+                            doctorShift.className = 'doctor-shift';
+                            doctorShift.style.color = textColor;
+                            doctorShift.textContent = displayName;
+                            shiftInfo.appendChild(doctorShift);
+                        }
+                    }
+                }
+                
+                dayCell.appendChild(shiftInfo);
+                grid.appendChild(dayCell);
+            }
+        }
+
+        // シフト取消
+        async function cancelShift() {
+            selectedDays.clear();
+            
+            // 有給休暇の使用状況をリセット
+            usedPaidDaysCount = 0;
+            
+            // 残り休日数を初期値に戻す
+            monthlyData.remainingHolidays = initialHolidays;
+            
+            // 有給休暇数を元に戻す（使用した分を全て復元）
+            monthlyData.remainingPaid = 12; // 元の値に戻す
+            
+            // 表示を更新
+            document.getElementById('remainingHolidays').textContent = monthlyData.remainingHolidays + '日';
+            document.getElementById('remainingPaid').textContent = monthlyData.remainingPaid + '日';
+            
+            await deleteShiftsForMonth();
+            await renderCalendar();
+            
+            alert('シフトの提出を取消しました。');
+        }
+
+        // ログアウト
+        function logout() {
+            sessionStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
