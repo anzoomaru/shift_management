@@ -27,6 +27,7 @@
 - 管理者画面の休診日指定は「休診日を保存」ボタンで一括保存（保存済み/未保存の表示あり）
 - 管理者画面のJS二重宣言を解消し、ログイン後のカレンダー描画が止まる問題を修正
 - 管理者の休診日操作（クリック/曜日一括/祝日反映）の高速化とシフト削除の一括処理
+- GASのCORS対策としてPOSTはフォーム送信（action=delete対応）に変更
 - 水曜・祝日休診の月でも、指定解除した日は休診扱いにならない（除外対応）
 - カレンダー描画最適化（DocumentFragment + 日付セルマップ化で再描画高速化）
 - 従業員画面の休日クリックはセルのみ更新し体感速度を改善
@@ -58,7 +59,7 @@
 ## データモデル / ストレージ
 - **使用テーブル**: `employees`, `shifts`, `closures`, `employee_settings`, `month_settings`
 - **ストレージ**: Google Sheets + Google Apps Script（GAS）API
-- **備考**: APIベースURL `https://script.google.com/macros/s/AKfycbxw7kPsT8h1gQl3Qxfb-HXjSLgEzD4NiCCZAxoH-1ug-YEKxEkiq_2UIYInVYbBBfW1zQ/exec` を使用。`?table=shifts` などのクエリで取得・保存。休診日は `closures`、従業員の有給は `employee_settings`、月別休日数は `month_settings`。祝日は https://holidays-jp.github.io/api/v1/date.json を参照。ログインは `employees` の `password` 列（任意追加）と `role` 列で判定。
+- **備考**: APIベースURL `https://script.google.com/macros/s/AKfycbxw7kPsT8h1gQl3Qxfb-HXjSLgEzD4NiCCZAxoH-1ug-YEKxEkiq_2UIYInVYbBBfW1zQ/exec` を使用。`?table=shifts` などのクエリで取得・保存。休診日は `closures`、従業員の有給は `employee_settings`、月別休日数は `month_settings`。祝日は https://holidays-jp.github.io/api/v1/date.json を参照。ログインは `employees` の `password` 列（任意追加）と `role` 列で判定。**CORS対策のためPOSTは `application/x-www-form-urlencoded` と `action=delete` を使用**。
 
 ## 公開URL
 - **Production**: なし（未デプロイ）

@@ -267,6 +267,25 @@
             return `${API_BASE}?${query.toString()}`;
         }
 
+        async function apiPost(table, payload = {}) {
+            const body = new URLSearchParams({ table, ...payload });
+            const response = await fetch(API_BASE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body
+            });
+            try {
+                return await response.json();
+            } catch (error) {
+                console.error('POST応答解析エラー:', error);
+                return {};
+            }
+        }
+
+        function apiDelete(table, id) {
+            return apiPost(table, { action: 'delete', id });
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             checkLoginStatus();
             await renderCalendar();
@@ -313,7 +332,7 @@
                     localStorage.setItem(flagKey, 'done');
                     return;
                 }
-                await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+                await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
                 localStorage.setItem(flagKey, 'done');
             } catch (error) {
                 console.error('初期シフト削除エラー:', error);

@@ -420,6 +420,25 @@
             return `${API_BASE}?${query.toString()}`;
         }
 
+        async function apiPost(table, payload = {}) {
+            const body = new URLSearchParams({ table, ...payload });
+            const response = await fetch(API_BASE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body
+            });
+            try {
+                return await response.json();
+            } catch (error) {
+                console.error('POST応答解析エラー:', error);
+                return {};
+            }
+        }
+
+        function apiDelete(table, id) {
+            return apiPost(table, { action: 'delete', id });
+        }
+
         let employeesList = [];
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -636,14 +655,9 @@
 
         async function saveEmployeeSettings(payload) {
             if (currentEmployeeSettings.id) {
-                await fetch(apiUrl('employee_settings', { id: currentEmployeeSettings.id }), { method: 'DELETE' });
+                await apiDelete('employee_settings', currentEmployeeSettings.id);
             }
-            const response = await fetch(apiUrl('employee_settings'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...payload, id: currentEmployeeSettings.id || undefined })
-            });
-            const created = await response.json();
+            const created = await apiPost('employee_settings', { ...payload, id: currentEmployeeSettings.id || undefined });
             currentEmployeeSettings.id = created.id || currentEmployeeSettings.id;
         }
 
@@ -682,14 +696,9 @@
             try {
                 globalMonthlyHolidays = value;
                 if (currentMonthSettingsId) {
-                    await fetch(apiUrl('month_settings', { id: currentMonthSettingsId }), { method: 'DELETE' });
+                    await apiDelete('month_settings', currentMonthSettingsId);
                 }
-                const response = await fetch(apiUrl('month_settings'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ month_key: monthKey, monthly_holidays: value, id: currentMonthSettingsId || undefined })
-                });
-                const created = await response.json();
+                const created = await apiPost('month_settings', { month_key: monthKey, monthly_holidays: value, id: currentMonthSettingsId || undefined });
                 currentMonthSettingsId = created.id || currentMonthSettingsId;
                 updateUsageDisplay();
             } finally {
@@ -846,15 +855,17 @@
             const toCreate = targets.filter(dateKey => !closuresMap[dateKey]);
             const toDelete = Array.from(weeklyHolidayExclusions).filter(dateKey => closuresMap[dateKey]);
 
-            await Promise.all(toCreate.map(dateKey => fetch(apiUrl('closures'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date: dateKey, set_by: currentUser.email })
-            }).then(r => r.json()).then(created => { closuresMap[dateKey] = created.id; })));
+            await Promise.all(toCreate.map(async dateKey => {
+                const created = await apiPost('closures', { date: dateKey, set_by: currentUser.email });
+                if (created && created.id) {
+                    closuresMap[dateKey] = created.id;
+                }
+            }));
 
-            await Promise.all(toDelete.map(dateKey => fetch(apiUrl('closures', { id: closuresMap[dateKey] }), { method: 'DELETE' }).then(() => {
+            await Promise.all(toDelete.map(async dateKey => {
+                await apiDelete('closures', closuresMap[dateKey]);
                 delete closuresMap[dateKey];
-            })));
+            }));
         }
 
         async function applyWeeklyAndHolidayClosures() {
@@ -1024,17 +1035,17 @@
                 const toCreate = Array.from(closuresSet).filter(dateKey => !closuresMap[dateKey]);
                 const toDelete = Object.keys(closuresMap).filter(dateKey => !closuresSet.has(dateKey));
 
-                await Promise.all(toCreate.map(dateKey => fetch(apiUrl('closures'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date: dateKey, set_by: currentUser.email })
-                }).then(r => r.json()).then(created => {
-                    closuresMap[dateKey] = created.id;
-                })));
+                await Promise.all(toCreate.map(async dateKey => {
+                    const created = await apiPost('closures', { date: dateKey, set_by: currentUser.email });
+                    if (created && created.id) {
+                        closuresMap[dateKey] = created.id;
+                    }
+                }));
 
-                await Promise.all(toDelete.map(dateKey => fetch(apiUrl('closures', { id: closuresMap[dateKey] }), { method: 'DELETE' }).then(() => {
+                await Promise.all(toDelete.map(async dateKey => {
+                    await apiDelete('closures', closuresMap[dateKey]);
                     delete closuresMap[dateKey];
-                })));
+                }));
 
                 if (toCreate.length > 0) {
                     await deleteShiftsByDates(toCreate);
@@ -1058,7 +1069,7 @@
             const data = await response.json();
             const keySet = new Set(uniqueKeys);
             const targets = (data.data || []).filter(s => keySet.has(s.shift_date));
-            await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+            await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
         }
 
         async function deleteShiftsByDate(dateKey) {
@@ -1070,7 +1081,7 @@
             const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
             const data = await response.json();
             const targets = (data.data || []).filter(s => s.employee_id === employeeId && (s.shift_date || '').startsWith(monthKey));
-            await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+            await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
         }
 
         async function submitEmployeeShift() {
@@ -1088,15 +1099,11 @@
                 await deleteExistingShiftsForEmployee(employeeId, year, month);
 
                 const workingDays = getMonthWorkingDays(year, month, closuresSet).filter(d => !selectedDays.has(d));
-                await Promise.all(workingDays.map(dateStr => fetch(apiUrl('shifts'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        employee_id: employee.id,
-                        employee_name: employee.name,
-                        shift_date: dateStr,
-                        position_type: employee.position_type
-                    })
+                await Promise.all(workingDays.map(dateStr => apiPost('shifts', {
+                    employee_id: employee.id,
+                    employee_name: employee.name,
+                    shift_date: dateStr,
+                    position_type: employee.position_type
                 })));
 
                 currentEmployeeSettings.remaining_paid = Math.max(0, Number(currentEmployeeSettings.remaining_paid || 0) - usedPaid);

@@ -329,6 +329,25 @@
             return `${API_BASE}?${query.toString()}`;
         }
 
+        async function apiPost(table, payload = {}) {
+            const body = new URLSearchParams({ table, ...payload });
+            const response = await fetch(API_BASE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body
+            });
+            try {
+                return await response.json();
+            } catch (error) {
+                console.error('POST応答解析エラー:', error);
+                return {};
+            }
+        }
+
+        function apiDelete(table, id) {
+            return apiPost(table, { action: 'delete', id });
+        }
+
         // ページ読み込み時の初期化
         document.addEventListener('DOMContentLoaded', function() {
             checkLoginStatus();
@@ -406,7 +425,7 @@
                     localStorage.setItem(flagKey, 'done');
                     return;
                 }
-                await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+                await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
                 localStorage.setItem(flagKey, 'done');
             } catch (error) {
                 console.error('初期シフト削除エラー:', error);
@@ -776,7 +795,7 @@
             const response = await fetch(apiUrl('shifts', { page: 1, limit: 500 }));
             const data = await response.json();
             const targets = (data.data || []).filter(s => s.employee_id === currentUser.employee_id && (s.shift_date || '').startsWith(monthKey));
-            await Promise.all(targets.map(s => fetch(apiUrl('shifts', { id: s.id }), { method: 'DELETE' })));
+            await Promise.all(targets.map(s => apiDelete('shifts', s.id)));
         }
 
         async function saveShiftsForMonth() {
@@ -797,11 +816,7 @@
                     position_type: currentUser.position_type
                 }));
 
-                await Promise.all(payloads.map(data => fetch(apiUrl('shifts'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                })));
+                await Promise.all(payloads.map(data => apiPost('shifts', data)));
             } finally {
                 hideLoading();
                 isSaving = false;
