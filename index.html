@@ -138,14 +138,15 @@
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
             
             const employees = await loadEmployees();
-            const row = employees.find(emp => String(emp.id || '').toLowerCase() === email.toLowerCase());
-            const rowPassword = row ? String(row.password || '') : '';
+            const normalizedId = String(email || '').trim().toLowerCase();
+            const row = employees.find(emp => String(emp.id || '').trim().toLowerCase() === normalizedId);
+            const rowPassword = row ? String(row.password || '').trim() : '';
 
-            if (row && rowPassword && rowPassword === password) {
+            if (row && rowPassword && rowPassword === String(password || '').trim()) {
                 const positionType = row.position_type || 'staff';
                 const role = row.role || (positionType === 'doctor' ? 'veterinarian' : (positionType === 'nurse' ? 'nurse' : 'admin'));
                 sessionStorage.setItem('user', JSON.stringify({
