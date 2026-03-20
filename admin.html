@@ -414,7 +414,7 @@
         let weeklyHolidayExclusions = new Set();
         let weeklyHolidayTargets = new Set();
 
-        const API_BASE = 'https://script.google.com/macros/s/AKfycbyOau2PzYyGWMyuhLpN9DIb2WuFXEdoxASZ8Sj83uhEMe6rKnkbwQLa2TnrBng2Qkxf9g/exec';
+        const API_BASE = 'https://script.google.com/macros/s/AKfycbxagqfFwtPgc0kxn8U2uMIXu-1XeEut33xQfCkQ1pSGkLyfH4MI5Ae02yTmEuPyJEXHdQ/exec';
         function apiUrl(table, params = {}) {
             const query = new URLSearchParams({ table, ...params });
             return `${API_BASE}?${query.toString()}`;
