@@ -122,6 +122,22 @@
             }
         }
 
+        function normalizeRow(row) {
+            const map = {};
+            Object.keys(row || {}).forEach(key => {
+                map[String(key).trim().toLowerCase()] = row[key];
+            });
+            return map;
+        }
+
+        function normalizeLoginId(value) {
+            return String(value || '').replace(/[\s\u3000]+/g, '').trim().toLowerCase();
+        }
+
+        function normalizePassword(value) {
+            return String(value || '').trim();
+        }
+
         // デモ用のログイン機能
         function goObserverGuest() {
             sessionStorage.setItem('user', JSON.stringify({
@@ -142,19 +158,28 @@
             const password = document.getElementById('password').value.trim();
             
             const employees = await loadEmployees();
-            const normalizedId = String(email || '').trim().toLowerCase();
-            const row = employees.find(emp => String(emp.id || '').trim().toLowerCase() === normalizedId);
-            const rowPassword = row ? String(row.password || '').trim() : '';
+            const normalizedId = normalizeLoginId(email);
+            const row = employees.find(emp => {
+                const normalized = normalizeRow(emp);
+                const rowId = normalized.id ?? normalized.login_id ?? normalized.loginid ?? normalized.userid ?? normalized.user_id;
+                return normalizeLoginId(rowId) === normalizedId;
+            });
+            const normalizedRow = row ? normalizeRow(row) : {};
+            const rowPasswordRaw = normalizedRow.password ?? normalizedRow.pass ?? normalizedRow.pwd ?? '';
+            const rowPassword = normalizePassword(rowPasswordRaw);
 
-            if (row && rowPassword && rowPassword === String(password || '').trim()) {
-                const positionType = row.position_type || 'staff';
-                const role = row.role || (positionType === 'doctor' ? 'veterinarian' : (positionType === 'nurse' ? 'nurse' : 'admin'));
+            if (row && rowPassword && rowPassword === normalizePassword(password)) {
+                const positionType = normalizedRow.position_type || normalizedRow.positiontype || 'staff';
+                const role = normalizedRow.role || (positionType === 'doctor' ? 'veterinarian' : (positionType === 'nurse' ? 'nurse' : 'admin'));
+                const displayName = normalizedRow.name || row.name || row.id || normalizedRow.id || normalizedId;
+                const positionLabel = normalizedRow.position || (role === 'nurse' ? '動物看護師' : (role === 'veterinarian' ? '獣医師' : '管理者'));
+                const employeeId = normalizedRow.id || row.id || normalizedId;
                 sessionStorage.setItem('user', JSON.stringify({
-                    email: row.id,
+                    email: employeeId,
                     role,
-                    name: row.name || row.id,
-                    position: row.position || (role === 'nurse' ? '動物看護師' : (role === 'veterinarian' ? '獣医師' : '管理者')),
-                    employee_id: row.id,
+                    name: displayName,
+                    position: positionLabel,
+                    employee_id: employeeId,
                     position_type: positionType
                 }));
 
@@ -170,6 +195,13 @@
                         window.location.href = 'observer.html';
                         break;
                 }
+                return;
+            }
+
+            if (!employees.length) {
+                const message = document.getElementById('errorMessage');
+                message.textContent = '従業員データが取得できません。GASのURLやシート名を確認してください。';
+                message.style.display = 'block';
                 return;
             }
 
