@@ -425,7 +425,11 @@
             const query = new URLSearchParams(params);
             const response = await fetch(`${API_BASE}?${query.toString()}`);
             try {
-                return await response.json();
+                const result = await response.json();
+                if (payload.action !== 'delete' && result && result.data && !result.id) {
+                    result.__invalid = true;
+                }
+                return result;
             } catch (error) {
                 console.error('API応答解析エラー:', error);
                 return {};
@@ -1096,12 +1100,16 @@
                 await deleteExistingShiftsForEmployee(employeeId, year, month);
 
                 const workingDays = getMonthWorkingDays(year, month, closuresSet).filter(d => !selectedDays.has(d));
-                await Promise.all(workingDays.map(dateStr => apiWrite('shifts', {
+                const results = await Promise.all(workingDays.map(dateStr => apiWrite('shifts', {
                     employee_id: employee.id,
                     employee_name: employee.name,
                     shift_date: dateStr,
                     position_type: employee.position_type
                 })));
+                if (results.some(r => r && r.__invalid)) {
+                    alert('シフト保存に失敗しました。GASが「action=create」に対応しているか確認してください。');
+                    return;
+                }
 
                 currentEmployeeSettings.remaining_paid = Math.max(0, Number(currentEmployeeSettings.remaining_paid || 0) - usedPaid);
                 await saveEmployeeSettings({
