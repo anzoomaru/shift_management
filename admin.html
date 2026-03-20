@@ -422,18 +422,11 @@
         let weeklyHolidayExclusions = new Set();
         let weeklyHolidayTargets = new Set();
 
-        const employees = [
-            { id: 'tsutsui@tsutsui.jp', name: '筒井崇', position_type: 'doctor', position: '獣医師' },
-            { id: 'aoyama@aoyama.jp', name: '青山', position_type: 'nurse', position: '動物看護師' },
-            { id: 'masaru@masaru.jp', name: '院長', position_type: 'doctor', position: '獣医師' },
-            { id: 'kai@kai.jp', name: '甲斐', position_type: 'doctor', position: '獣医師' },
-            { id: 'shibata@shibata.jp', name: '柴田', position_type: 'nurse', position: '動物看護師' },
-            { id: 'test@test.jp', name: 'テスト従業員', position_type: 'nurse', position: '動物看護師' }
-        ];
+        let employeesList = [];
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             checkLoginStatus();
-            populateEmployees();
+            await populateEmployees();
             setupHolidayControls();
             renderCalendar();
         });
@@ -455,7 +448,7 @@
                 return;
             }
             currentUser = JSON.parse(userData);
-            if (currentUser.email !== 'tsutsui@tsutsui.jp') {
+            if (currentUser.role !== 'admin') {
                 window.location.href = 'index.html';
                 return;
             }
@@ -494,15 +487,37 @@
             renderCalendar();
         }
 
-        function populateEmployees() {
+        async function populateEmployees() {
             const select = document.getElementById('employeeSelect');
             select.innerHTML = '';
-            employees.forEach(emp => {
+            try {
+                const response = await fetch(apiUrl('employees'));
+                const data = await response.json();
+                employeesList = (data.data || []).map(emp => ({
+                    id: emp.id,
+                    name: emp.name || emp.id,
+                    position: emp.position || (emp.position_type === 'nurse' ? '動物看護師' : '獣医師'),
+                    position_type: emp.position_type || 'doctor'
+                }));
+            } catch (error) {
+                console.error('従業員一覧取得エラー:', error);
+                employeesList = [];
+            }
+
+            if (employeesList.length === 0) {
                 const opt = document.createElement('option');
-                opt.value = emp.id;
-                opt.textContent = `${emp.name}（${emp.position}）`;
+                opt.value = '';
+                opt.textContent = '従業員が登録されていません';
                 select.appendChild(opt);
-            });
+            } else {
+                employeesList.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id;
+                    opt.textContent = `${emp.name}（${emp.position}）`;
+                    select.appendChild(opt);
+                });
+            }
+
             select.addEventListener('change', async () => {
                 selectedDays.clear();
                 await loadEmployeeSettings();
@@ -741,7 +756,7 @@
 
         function loadEmployeesMap() {
             const map = {};
-            employees.forEach(emp => { map[emp.id] = emp.name; });
+            employeesList.forEach(emp => { map[emp.id] = emp.name; });
             cachedEmployeesMap = map;
             return map;
         }
@@ -1049,7 +1064,7 @@
 
         async function submitEmployeeShift() {
             const employeeId = document.getElementById('employeeSelect').value;
-            const employee = employees.find(e => e.id === employeeId);
+            const employee = employeesList.find(e => e.id === employeeId);
             if (!employee) return;
 
             const monthlyHolidays = Number(globalMonthlyHolidays || 0);

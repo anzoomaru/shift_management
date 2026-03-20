@@ -52,9 +52,9 @@
 - 従業員一覧のページング対応（大量データ時）
 
 ## データモデル / ストレージ
-- **使用テーブル**: `shifts`, `closures`, `employee_settings`, `month_settings`
+- **使用テーブル**: `employees`, `shifts`, `closures`, `employee_settings`, `month_settings`
 - **ストレージ**: Google Sheets + Google Apps Script（GAS）API
-- **備考**: APIベースURL `https://script.google.com/macros/s/AKfycbyOau2PzYyGWMyuhLpN9DIb2WuFXEdoxASZ8Sj83uhEMe6rKnkbwQLa2TnrBng2Qkxf9g/exec` を使用。`?table=shifts` などのクエリで取得・保存。休診日は `closures`、従業員の有給は `employee_settings`、月別休日数は `month_settings`。祝日は https://holidays-jp.github.io/api/v1/date.json を参照。
+- **備考**: APIベースURL `https://script.google.com/macros/s/AKfycbyOau2PzYyGWMyuhLpN9DIb2WuFXEdoxASZ8Sj83uhEMe6rKnkbwQLa2TnrBng2Qkxf9g/exec` を使用。`?table=shifts` などのクエリで取得・保存。休診日は `closures`、従業員の有給は `employee_settings`、月別休日数は `month_settings`。祝日は https://holidays-jp.github.io/api/v1/date.json を参照。ログインは `employees` の `password` 列（任意追加）と `role` 列で判定。
 
 ## 公開URL
 - **Production**: なし（未デプロイ）
@@ -64,4 +64,4 @@
 
 ## 連絡・運用メモ
 - デモログイン: `observer@observer / observer123`
-- 管理者: `tsutsui@tsutsui.jp`（従業員/管理者を画面切替）
+- 管理者: `employees` の `role=admin` を付けたログインID（例: `takashi`）
