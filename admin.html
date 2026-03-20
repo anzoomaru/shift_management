@@ -419,8 +419,6 @@
             const query = new URLSearchParams({ table, ...params });
             return `${API_BASE}?${query.toString()}`;
         }
-        let weeklyHolidayExclusions = new Set();
-        let weeklyHolidayTargets = new Set();
 
         let employeesList = [];
 

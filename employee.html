@@ -689,16 +689,16 @@
         // 日付の選択/解除
         function toggleDay(date) {
             const dateKey = formatDate(date);
-            
+
             // 休診日の場合は選択不可
             if (closuresSet.has(dateKey)) {
                 return;
             }
-            
+
             if (selectedDays.has(dateKey)) {
                 // 選択解除の場合
                 selectedDays.delete(dateKey);
-                
+
                 // 有給が使用されている場合は有給を優先的に戻す
                 if (usedPaidDaysCount > 0) {
                     usedPaidDaysCount--;
@@ -709,13 +709,9 @@
                 }
             } else {
                 // 選択の場合
-                const currentSelectedDays = selectedDays.size;
-                const totalSelectedDays = currentSelectedDays + 1;
-                
-                // 現在の通常休日数（有給を除いた選択済み日数）
                 const currentRegularHolidays = selectedDays.size - usedPaidDaysCount;
                 const remainingRegularHolidays = Math.max(0, initialHolidays - currentRegularHolidays);
-                
+
                 // 残り休日数を超える場合
                 if (remainingRegularHolidays === 0) {
                     // 有給を使用する必要がある
@@ -745,13 +741,17 @@
                     monthlyData.remainingHolidays--;
                 }
             }
-            
+
             // 表示を更新
             document.getElementById('remainingHolidays').textContent = monthlyData.remainingHolidays + '日';
             document.getElementById('remainingPaid').textContent = monthlyData.remainingPaid + '日';
             document.getElementById('usedPaid').textContent = usedPaidDaysCount + '日';
-            
-            renderCalendar();
+
+            // 選択表示のみ更新（全再描画を避ける）
+            const targetCell = calendarCellMap[dateKey];
+            if (targetCell) {
+                targetCell.classList.toggle('selected', selectedDays.has(dateKey));
+            }
         }
 
         // 日付フォーマット
