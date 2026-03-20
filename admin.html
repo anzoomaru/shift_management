@@ -422,9 +422,9 @@
 
         let employeesList = [];
 
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', function() {
             checkLoginStatus();
-            await populateEmployees();
+            populateEmployees();
             setupHolidayControls();
             renderCalendar();
         });
@@ -957,6 +957,12 @@
 
                 if (cachedOtherShifts && cachedEmployeesMap) {
                     displayOtherEmployeesShifts(cachedOtherShifts, cachedEmployeesMap, year, month);
+                }
+            } catch (error) {
+                console.error('カレンダー描画エラー:', error);
+                const grid = document.getElementById('calendarGrid');
+                if (grid) {
+                    grid.innerHTML = '<div class="p-3 text-danger">カレンダーの描画に失敗しました。再読み込みしてください。</div>';
                 }
             } finally {
                 hideLoading();
