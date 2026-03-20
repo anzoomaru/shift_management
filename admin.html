@@ -420,23 +420,20 @@
             return `${API_BASE}?${query.toString()}`;
         }
 
-        async function apiPost(table, payload = {}) {
-            const body = new URLSearchParams({ table, ...payload });
-            const response = await fetch(API_BASE, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-                body
-            });
+        async function apiWrite(table, payload = {}) {
+            const params = { table, action: payload.action || 'create', _ts: Date.now(), ...payload };
+            const query = new URLSearchParams(params);
+            const response = await fetch(`${API_BASE}?${query.toString()}`);
             try {
                 return await response.json();
             } catch (error) {
-                console.error('POST応答解析エラー:', error);
+                console.error('API応答解析エラー:', error);
                 return {};
             }
         }
 
         function apiDelete(table, id) {
-            return apiPost(table, { action: 'delete', id });
+            return apiWrite(table, { action: 'delete', id });
         }
 
         let employeesList = [];
@@ -657,7 +654,7 @@
             if (currentEmployeeSettings.id) {
                 await apiDelete('employee_settings', currentEmployeeSettings.id);
             }
-            const created = await apiPost('employee_settings', { ...payload, id: currentEmployeeSettings.id || undefined });
+            const created = await apiWrite('employee_settings', { ...payload, id: currentEmployeeSettings.id || undefined });
             currentEmployeeSettings.id = created.id || currentEmployeeSettings.id;
         }
 
@@ -698,7 +695,7 @@
                 if (currentMonthSettingsId) {
                     await apiDelete('month_settings', currentMonthSettingsId);
                 }
-                const created = await apiPost('month_settings', { month_key: monthKey, monthly_holidays: value, id: currentMonthSettingsId || undefined });
+                const created = await apiWrite('month_settings', { month_key: monthKey, monthly_holidays: value, id: currentMonthSettingsId || undefined });
                 currentMonthSettingsId = created.id || currentMonthSettingsId;
                 updateUsageDisplay();
             } finally {
@@ -856,7 +853,7 @@
             const toDelete = Array.from(weeklyHolidayExclusions).filter(dateKey => closuresMap[dateKey]);
 
             await Promise.all(toCreate.map(async dateKey => {
-                const created = await apiPost('closures', { date: dateKey, set_by: currentUser.email });
+                const created = await apiWrite('closures', { date: dateKey, set_by: currentUser.email });
                 if (created && created.id) {
                     closuresMap[dateKey] = created.id;
                 }
@@ -1036,7 +1033,7 @@
                 const toDelete = Object.keys(closuresMap).filter(dateKey => !closuresSet.has(dateKey));
 
                 await Promise.all(toCreate.map(async dateKey => {
-                    const created = await apiPost('closures', { date: dateKey, set_by: currentUser.email });
+                    const created = await apiWrite('closures', { date: dateKey, set_by: currentUser.email });
                     if (created && created.id) {
                         closuresMap[dateKey] = created.id;
                     }
@@ -1099,7 +1096,7 @@
                 await deleteExistingShiftsForEmployee(employeeId, year, month);
 
                 const workingDays = getMonthWorkingDays(year, month, closuresSet).filter(d => !selectedDays.has(d));
-                await Promise.all(workingDays.map(dateStr => apiPost('shifts', {
+                await Promise.all(workingDays.map(dateStr => apiWrite('shifts', {
                     employee_id: employee.id,
                     employee_name: employee.name,
                     shift_date: dateStr,
